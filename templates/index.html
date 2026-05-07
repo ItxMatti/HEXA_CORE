@@ -1,0 +1,255 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AI CV Analyser</title>
+    <link rel="stylesheet" href="/static/style.css">
+</head>
+<body>
+<div class="app-shell">
+    <aside class="sidebar" id="sidebar">
+        <div class="sidebar-top">
+            <div class="brand">
+                <div class="brand-icon">AI</div>
+                <div class="brand-text">
+                    <h2>CV Analyser</h2>
+                    <p>Smart Resume Studio</p>
+                </div>
+            </div>
+            <button class="toggle-btn" id="sidebarToggle" type="button" onclick="toggleSidebar()" aria-label="Toggle sidebar">☰</button>
+        </div>
+
+        <div class="sidebar-group">
+            <p class="sidebar-label">Main Menu</p>
+            <button class="nav-item active" type="button" onclick="activateNav(this); scrollToSection('dashboardSection')">
+                <span class="nav-icon">🏠</span>
+                <span class="nav-text">Dashboard</span>
+            </button>
+            <button class="nav-item" type="button" onclick="activateNav(this); openFileUpload()">
+                <span class="nav-icon">📄</span>
+                <span class="nav-text">Upload Resume</span>
+            </button>
+            <button class="nav-item" type="button" onclick="activateNav(this); showScore()">
+                <span class="nav-icon">📊</span>
+                <span class="nav-text">Resume Score</span>
+            </button>
+            <button class="nav-item" type="button" onclick="activateNav(this); showSuggestions()">
+                <span class="nav-icon">💡</span>
+                <span class="nav-text">AI Suggestions</span>
+            </button>
+            <button class="nav-item" type="button" onclick="activateNav(this); scrollToSection('breakdownSection')">
+                <span class="nav-icon">🔎</span>
+                <span class="nav-text">Keyword Analysis</span>
+            </button>
+            <button class="nav-item" type="button" onclick="activateNav(this); showJobMatch()">
+                <span class="nav-icon">🎯</span>
+                <span class="nav-text">Job Match</span>
+            </button>
+        </div>
+
+        <div class="sidebar-group">
+            <p class="sidebar-label">Workspace</p>
+            <button class="nav-item" type="button" onclick="showHistory()">
+                <span class="nav-icon">🕘</span>
+                <span class="nav-text">History</span>
+            </button>
+            <button class="nav-item" type="button" onclick="showFeedbackPanel()">
+                <span class="nav-icon">💬</span>
+                <span class="nav-text">Feedback</span>
+            </button>
+            <button class="nav-item" type="button" onclick="showSettingsPanel()">
+                <span class="nav-icon">⚙️</span>
+                <span class="nav-text">Settings</span>
+            </button>
+        </div>
+
+        <div class="sidebar-footer">
+            <div class="sidebar-status">
+                <span class="status-dot"></span>
+                <span class="nav-text">Analyzer Ready</span>
+            </div>
+        </div>
+    </aside>
+
+    <main class="main-content">
+        <section class="topbar" id="dashboardSection">
+            <div>
+                <p class="eyebrow">AI Powered Resume Optimizer</p>
+                <h1>Welcome Back, Matti!</h1>
+            </div>
+            <div class="topbar-right">
+                <button class="ghost-btn" type="button" onclick="clearWorkspace()">Reset Workspace</button>
+                <div class="profile-chip">👤 Matti Ur Rehman</div>
+            </div>
+        </section>
+
+        <section class="stats-grid" id="scoreSection">
+            <article class="stat-card">
+                <div class="stat-copy">
+                    <p>Resume Score</p>
+                    <div class="stat-main">
+                        <h2 id="score">0</h2>
+                        <div class="badge success" id="scoreLabel">Not Analyzed</div>
+                    </div>
+                    <div class="mini-progress blue"><span id="scoreBar" style="width: 0%;"></span></div>
+                </div>
+                <div class="ring green" id="scoreCircle">
+                    <span>0</span>
+                </div>
+            </article>
+
+            <article class="stat-card">
+                <div class="stat-copy">
+                    <p>Job Match</p>
+                    <div class="stat-main">
+                        <h2 id="match">0%</h2>
+                        <div class="badge warning" id="matchLabel">Not Matched</div>
+                    </div>
+                    <div class="mini-progress green"><span id="matchBar" style="width: 0%;"></span></div>
+                </div>
+                <div class="ring orange" id="matchCircle">
+                    <span>0%</span>
+                </div>
+            </article>
+
+            <article class="stat-card">
+                <div class="stat-copy">
+                    <p>Skills Gap</p>
+                    <div class="stat-main">
+                        <h2 id="skillsGap">0</h2>
+                        <div class="badge danger" id="skillsGapLabel">No Missing Skills</div>
+                    </div>
+                    <div class="mini-progress red"><span id="skillsGapBar" style="width: 0%;"></span></div>
+                </div>
+                <div class="skills-graphic" aria-hidden="true">
+                    <span></span><span></span><span></span><span></span>
+                </div>
+            </article>
+        </section>
+
+        <section class="toolbar">
+            <div class="toolbar-left">
+                <input type="file" id="file" accept=".pdf" hidden>
+                <button class="primary-btn" type="button" onclick="openFileUpload()">⬇ Upload Resume</button>
+                <button class="secondary-btn" type="button" onclick="uploadCV()">Analyze Resume</button>
+            </div>
+
+            <div class="toolbar-right">
+                <div class="input-wrap">
+                    <span>⌕</span>
+                    <textarea id="job_desc" placeholder="Job Description Input"></textarea>
+                </div>
+            </div>
+        </section>
+
+        <section class="editor-card">
+            <div class="section-header">
+                <h3>Live CV Editor</h3>
+                <div class="dots">
+                    <span></span><span></span><span></span>
+                </div>
+            </div>
+
+            <div class="editor-grid">
+                <div class="panel">
+                    <div class="panel-heading">Your Resume</div>
+                    <div class="panel-body" id="resumeText">
+                        <h2>-----</h2>
+                        <h4>Marketing Manager</h4>
+                        <hr>
+                        <ul>
+                            <li>Lead a team of 5 to boost campaign ROI by 40%.</li>
+                            <li>Developed digital marketing strategies.</li>
+                            <li>Managed social media campaigns.</li>
+                            <li>Analyzed market trends and customer insights.</li>
+                        </ul>
+                    </div>
+                </div>
+
+                <div class="panel">
+                    <div class="panel-heading">Job Description</div>
+                    <div class="panel-body" id="jobText">
+                        <h3>Marketing Manager Position</h3>
+                        <h4>Responsibilities:</h4>
+                        <ul>
+                            <li>Lead marketing team to increase ROI.</li>
+                            <li>Develop and execute strategic campaigns.</li>
+                            <li>Manage social media and analytics.</li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+
+            <div class="realtime-feedback" id="feedbackBanner">
+                <span>◆ Real-Time Feedback:</span>
+                <strong id="boostedHighlights">+3 Boosted Highlights</strong>
+            </div>
+        </section>
+
+        <section class="breakdown-card" id="breakdownSection">
+            <div class="section-title">Resume Analysis Breakdown</div>
+            <div class="breakdown-grid">
+                <div class="metric-box">
+                    <div class="metric-head">
+                        <span>ATS Compatibility</span>
+                        <strong id="atsValue">0%</strong>
+                    </div>
+                    <div class="progress-track yellow"><span id="atsBar" style="width: 0%;"></span></div>
+                </div>
+
+                <div class="metric-box">
+                    <div class="metric-head">
+                        <span>Content Strength</span>
+                        <strong id="contentValue">0%</strong>
+                    </div>
+                    <div class="progress-track teal"><span id="contentBar" style="width: 0%;"></span></div>
+                </div>
+
+                <div class="metric-box">
+                    <div class="metric-head">
+                        <span>Keyword Match</span>
+                        <strong id="keywordsValue">0%</strong>
+                    </div>
+                    <div class="progress-track orange"><span id="keywordsBar" style="width: 0%;"></span></div>
+                </div>
+
+                <div class="metric-box">
+                    <div class="metric-head">
+                        <span>Formatting</span>
+                        <strong id="formattingValue">0%</strong>
+                    </div>
+                    <div class="progress-track green"><span id="formattingBar" style="width: 0%;"></span></div>
+                </div>
+            </div>
+        </section>
+
+        <section class="analysis-card" id="analysisSection">
+            <div class="section-title">Job Match Analysis</div>
+            <div class="analysis-content">
+                <div class="analysis-score">
+                    <p>Current Match</p>
+                    <h2 id="rightMatch">0%</h2>
+                    <span id="jobIdeaText">Suggested role: Not available yet</span>
+                </div>
+
+                <div class="analysis-details">
+                    <h4>Improvement Suggestions</h4>
+                    <ul id="suggestions">
+                        <li>Add achievements</li>
+                        <li>Improve keywords</li>
+                    </ul>
+
+                    <div class="buttons">
+                        <button id="downloadReportBtn" type="button" class="secondary-btn" onclick="downloadReport()">Download Report</button>
+                        <button id="exportPdfBtn" type="button" class="primary-btn" onclick="exportAnalysisPDF()">Export PDF</button>
+                    </div>
+                </div>
+            </div>
+        </section>
+    </main>
+</div>
+
+<script src="/static/script.js"></script>
+</body>
+</html>
