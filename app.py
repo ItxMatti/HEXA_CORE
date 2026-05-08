@@ -345,6 +345,7 @@ def download_report():
     )
 
 if __name__ == "__main__":
+<<<<<<< HEAD
 =======
 from flask import Flask, render_template, request, jsonify, send_file
 from flask_cors import CORS  # Added to allow XAMPP to communicate with Flask
@@ -694,3 +695,7 @@ def download_report():
 if __name__ == "__main__":
 >>>>>>> 0f5eeac82164bc5624ec33175787a4be76c51815
     app.run(host="127.0.0.1", port=5000, debug=True, use_reloader=False)
+=======
+port = int(os.environ.get("PORT", 5000))
+app.run(host="0.0.0.0", port=port, debug=False)
+>>>>>>> 8ce5f4f9fc2f543571dad29796e76d3096328544
