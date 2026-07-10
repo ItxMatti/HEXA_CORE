@@ -1,6 +1,9 @@
-
 .env
-config.php
-Confi.php
-config.php
-.env
+php/database_config.php
+php/openrouter_config.php
+logs/
+uploads/
+__pycache__/
+*.pyc
+*.log
+cv_analyser/uploads/
