@@ -52,7 +52,7 @@ window.location = "dashboard.html";
 }
 else if(data === "session_expired"){
 alert("Session expired. Login again.");
-window.location = "login_signup.html";
+window.location = "index.html";
 }
 else{
 alert("Wrong OTP");

@@ -252,7 +252,7 @@ function clearTasks() {
 }
 
 function logout() { 
-  window.location.href = "login_signup.html";
+  window.location.href = "index.html";
 }
 
 // Close dropdowns when clicking outside
