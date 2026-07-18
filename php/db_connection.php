@@ -1,12 +1,13 @@
 <?php
-$host = "localhost";
-$user = "root";
-$pass = "";
-$dp = "login_system";
 
-$conn = new mysqli("localhost","root","","login_system");
+$host = "sql102.infinityfree.com";
+$user = "if0_42438179";
+$pass = "F3li2UR0oF";
+$db   = "if0_42438179_hexacore";
 
-if (!$conn) {
-    die("Connection failed: " . mysqli_connect_error());
+$conn = new mysqli($host, $user, $pass, $db);
+
+if ($conn->connect_error) {
+    die("Connection failed: " . $conn->connect_error);
 }
 ?>
