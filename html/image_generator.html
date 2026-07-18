@@ -258,7 +258,8 @@ async function fakeGenerate() {
     progressBar.style.width = "30%";
 
     try {
-        let response = await fetch("/generate", {
+        /* CHANGED: /generate -> /image/generate (merged app.py route) */
+        let response = await fetch("/image/generate", {
             method: "POST",
             headers: {
                 "Content-Type": "application/json"

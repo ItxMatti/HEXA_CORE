@@ -5,8 +5,10 @@ let latestAnalysis = {
     missingSkills: [],
 };
 
-// Ensure API points to Flask, not XAMPP!
-const FLASK_API_URL = "http://127.0.0.1:5000";
+// CHANGED: Empty string = same-origin relative requests.
+// This page is served BY the Flask app on PythonAnywhere, so we don't
+// need a hardcoded domain here (works on PythonAnywhere AND locally).
+const FLASK_API_URL = "";
 
 const defaultResumeMarkup = document.getElementById("resumeText").innerHTML;
 const defaultJobMarkup = document.getElementById("jobText").innerHTML;
@@ -88,7 +90,7 @@ function showFeedbackPanel() {
 }
 
 function showSettingsPanel() {
-    alert("Settings Panel\n\n- API routing linked to Flask: Active\n- XAMPP CORS enabled: Active");
+    alert("Settings Panel\n\n- API routing linked to Flask: Active\n- Backend hosted on PythonAnywhere: Active");
 }
 
 function clearWorkspace() {
@@ -188,8 +190,8 @@ async function uploadCV() {
     formData.append("job_desc", jobDesc);
 
     try {
-        // Pointed exactly to Flask
-        const response = await fetch(`${FLASK_API_URL}/upload`, {
+        /* CHANGED: /upload -> /cv/upload (merged app.py route) */
+        const response = await fetch(`${FLASK_API_URL}/cv/upload`, {
             method: "POST",
             body: formData,
         });
@@ -241,8 +243,8 @@ async function uploadCV() {
 
 async function downloadReport() {
     try {
-        // Pointed exactly to Flask
-        const response = await fetch(`${FLASK_API_URL}/download-report`, {
+        /* CHANGED: /download-report -> /cv/download-report (merged app.py route) */
+        const response = await fetch(`${FLASK_API_URL}/cv/download-report`, {
             method: "POST",
             headers: {
                 "Content-Type": "application/json",

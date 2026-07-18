@@ -1,25 +1,41 @@
-from flask import Flask, render_template, request, jsonify, send_file
+from flask import Flask, render_template, request, jsonify, send_file, send_from_directory
 from flask_cors import CORS
 import io
 import os
 import re
+import base64
+import requests
 from datetime import datetime
 import PyPDF2
+from dotenv import load_dotenv
+
+load_dotenv()
 
 BASE_DIR = os.path.abspath(os.path.dirname(__file__))
-TEMPLATE_DIR = os.path.join(BASE_DIR, "..", "cv_analyser", "templates")
-STATIC_DIR = os.path.join(BASE_DIR, "..", "cv_analyser", "static")
+PROJECT_ROOT = os.path.join(BASE_DIR, "..")
 
-app = Flask(__name__, 
-            template_folder=TEMPLATE_DIR, 
-            static_folder=STATIC_DIR, 
-            static_url_path="/static")
+# ---- CV Analyser folders ----
+CV_TEMPLATE_DIR = os.path.join(PROJECT_ROOT, "cv_analyser", "templates")
+CV_STATIC_DIR = os.path.join(PROJECT_ROOT, "cv_analyser", "static")
 
+# ---- Image Generator html folder ----
+HTML_DIR = os.path.join(PROJECT_ROOT, "html")
+
+app = Flask(
+    __name__,
+    template_folder=CV_TEMPLATE_DIR,
+    static_folder=CV_STATIC_DIR,
+    static_url_path="/static",
+)
 CORS(app)
 
-UPLOAD_FOLDER = os.path.join(BASE_DIR, "..", "cv_analyser", "uploads")
+UPLOAD_FOLDER = os.path.join(PROJECT_ROOT, "cv_analyser", "uploads")
 os.makedirs(UPLOAD_FOLDER, exist_ok=True)
 app.config["UPLOAD_FOLDER"] = UPLOAD_FOLDER
+
+# =========================================================
+# ================  CV ANALYSER LOGIC  ===================
+# =========================================================
 
 COMMON_SKILLS = {
     "python", "java", "javascript", "typescript", "sql", "mysql", "postgresql", "mongodb",
@@ -28,6 +44,7 @@ COMMON_SKILLS = {
     "marketing", "analytics", "communication", "leadership", "management", "sales",
     "figma", "ui", "ux", "testing", "automation", "machine learning", "data analysis"
 }
+
 
 def extract_text(file_path):
     text = ""
@@ -40,11 +57,14 @@ def extract_text(file_path):
         text = ""
     return text
 
+
 def clean_words(text):
     return re.findall(r"[a-zA-Z][a-zA-Z0-9+#.\-]*", text.lower())
 
+
 def normalize_space(text):
     return re.sub(r"\s+", " ", text).strip()
+
 
 def extract_detected_skills(text_lower):
     found = []
@@ -53,27 +73,28 @@ def extract_detected_skills(text_lower):
             found.append(skill.title())
     return found[:12]
 
+
 def format_resume_html(text):
     if not text.strip():
         return "<p style='font-weight: normal;'>No resume content available.</p>"
 
     lines = [line.strip() for line in text.splitlines() if line.strip()]
     name = lines[0].title()[:40] if lines else "Candidate"
-    
+
     continuous_text = re.sub(r"\s+", " ", text)
     sentences = re.split(r'(?<=[.!?])\s+', continuous_text)
-    
+
     highlights = []
     for sentence in sentences:
         clean_sentence = re.sub(r"^[^a-zA-Z0-9]+", "", sentence).strip()
         word_count = len(clean_sentence.split())
-        
+
         if 5 < word_count < 35:
             if not clean_sentence.endswith('.'):
                 clean_sentence += '.'
             highlights.append(clean_sentence)
-        
-        if len(highlights) == 5: 
+
+        if len(highlights) == 5:
             break
 
     if not highlights:
@@ -86,6 +107,7 @@ def format_resume_html(text):
         <hr style="border: 0; border-top: 1px solid #d8dfec; margin-bottom: 15px;">
         <ul style="line-height: 1.6; padding-left: 20px;">{bullets_html}</ul>
     """
+
 
 def format_job_desc_html(job_desc):
     cleaned_lines = [line.strip() for line in job_desc.splitlines() if line.strip()]
@@ -107,6 +129,7 @@ def format_job_desc_html(job_desc):
         <ul style="line-height: 1.6; padding-left: 20px;">{bullet_html}</ul>
     """
 
+
 def detect_job_idea(text_lower):
     if any(word in text_lower for word in ["python", "flask", "django", "developer", "software", "react", "api"]):
         return "Software Engineer"
@@ -119,6 +142,7 @@ def detect_job_idea(text_lower):
     if any(word in text_lower for word in ["sales", "business development", "client"]):
         return "Business Development Executive"
     return "General Professional"
+
 
 def build_suggestions(text_lower, sections_present, missing_skills, keyword_match, word_count, achievements_count):
     suggestions = []
@@ -143,12 +167,12 @@ def build_suggestions(text_lower, sections_present, missing_skills, keyword_matc
 
     return suggestions[:5]
 
+
 def analyze_resume(text, job_desc=""):
     text = normalize_space(text)
     job_desc = normalize_space(job_desc)
 
     text_lower = text.lower()
-    job_lower = job_desc.lower()
 
     text_words = set(clean_words(text))
     job_words = set(clean_words(job_desc))
@@ -290,11 +314,15 @@ def analyze_resume(text, job_desc=""):
         "report_text": "\n".join(report_lines),
     }
 
-@app.route("/")
-def home():
+
+# ---------------- CV Analyser Routes (prefixed with /cv) ----------------
+
+@app.route("/cv")
+def cv_home():
     return render_template("cv_analyser.html")
 
-@app.route("/upload", methods=["POST"])
+
+@app.route("/cv/upload", methods=["POST"])
 def upload():
     try:
         if "file" not in request.files:
@@ -320,7 +348,8 @@ def upload():
     except Exception as e:
         return jsonify({"error": str(e)}), 500
 
-@app.route("/download-report", methods=["POST"])
+
+@app.route("/cv/download-report", methods=["POST"])
 def download_report():
     data = request.get_json(silent=True) or {}
     report_text = data.get("report_text", "AI CV Analyser Report")
@@ -334,6 +363,81 @@ def download_report():
         download_name="cv_analysis_report.txt",
         mimetype="text/plain",
     )
+
+
+# =========================================================
+# ==============  IMAGE GENERATOR LOGIC  ==================
+# =========================================================
+
+IMAGE_API_URL = "https://router.huggingface.co/hf-inference/models/black-forest-labs/FLUX.1-schnell"
+HF_TOKEN = os.getenv("HF_API_TOKEN")
+IMAGE_HEADERS = {
+    "Authorization": f"Bearer {HF_TOKEN}",
+    "Content-Type": "application/json",
+}
+
+
+@app.route("/image")
+def image_home():
+    html_file = "image_generator.html"
+    if not os.path.exists(os.path.join(HTML_DIR, html_file)):
+        return f"Error: {html_file} not found in the html directory.", 404
+    return send_from_directory(HTML_DIR, html_file)
+
+
+@app.route("/image/generate", methods=["POST"])
+def generate_image():
+    try:
+        data = request.get_json()
+        prompt = data.get("prompt", "").strip()
+
+        if not prompt:
+            return jsonify({"error": "Prompt required"}), 400
+
+        response = requests.post(
+            IMAGE_API_URL,
+            headers=IMAGE_HEADERS,
+            json={"inputs": prompt}
+        )
+
+        print("STATUS:", response.status_code)
+
+        if response.status_code != 200:
+            print("ERROR RESPONSE:", response.text)
+
+            try:
+                hf_error = response.json().get("error", response.text)
+            except Exception:
+                hf_error = response.text
+
+            if "is currently loading" in hf_error:
+                return jsonify({"error": "Model is waking up. Please wait 20 seconds and try again!"}), 503
+
+            return jsonify({"error": f"Hugging Face Error: {hf_error}"}), response.status_code
+
+        image_bytes = response.content
+        img_base64 = base64.b64encode(image_bytes).decode()
+
+        return jsonify({
+            "image": "data:image/png;base64," + img_base64
+        })
+
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+
+
+# =========================================================
+# ======================  ROOT  ===========================
+# =========================================================
+
+@app.route("/")
+def root():
+    return jsonify({
+        "status": "ok",
+        "message": "HexaCore Python backend is live.",
+        "endpoints": ["/cv", "/cv/upload (POST)", "/cv/download-report (POST)", "/image", "/image/generate (POST)"]
+    })
+
 
 if __name__ == "__main__":
     port = int(os.environ.get("PORT", 5000))
