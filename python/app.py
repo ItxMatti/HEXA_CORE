@@ -369,12 +369,16 @@ def download_report():
 # ==============  IMAGE GENERATOR LOGIC  ==================
 # =========================================================
 
-IMAGE_API_URL = "https://router.huggingface.co/hf-inference/models/black-forest-labs/FLUX.1-schnell"
 HF_TOKEN = os.getenv("HF_API_TOKEN")
-IMAGE_HEADERS = {
-    "Authorization": f"Bearer {HF_TOKEN}",
-    "Content-Type": "application/json",
-}
+
+# Using huggingface_hub's InferenceClient instead of a raw hardcoded URL.
+# This automatically picks a provider (fal-ai, replicate, together, etc.)
+# that actually supports the model, instead of forcing "hf-inference"
+# (which mostly stopped serving heavy image models as of mid-2025).
+from huggingface_hub import InferenceClient
+hf_client = InferenceClient(api_key=HF_TOKEN)
+
+IMAGE_MODEL = "black-forest-labs/FLUX.1-dev"
 
 
 @app.route("/image")
@@ -394,36 +398,21 @@ def generate_image():
         if not prompt:
             return jsonify({"error": "Prompt required"}), 400
 
-        response = requests.post(
-            IMAGE_API_URL,
-            headers=IMAGE_HEADERS,
-            json={"inputs": prompt}
-        )
+        pil_image = hf_client.text_to_image(prompt, model=IMAGE_MODEL)
 
-        print("STATUS:", response.status_code)
-
-        if response.status_code != 200:
-            print("ERROR RESPONSE:", response.text)
-
-            try:
-                hf_error = response.json().get("error", response.text)
-            except Exception:
-                hf_error = response.text
-
-            if "is currently loading" in hf_error:
-                return jsonify({"error": "Model is waking up. Please wait 20 seconds and try again!"}), 503
-
-            return jsonify({"error": f"Hugging Face Error: {hf_error}"}), response.status_code
-
-        image_bytes = response.content
-        img_base64 = base64.b64encode(image_bytes).decode()
+        buffer = io.BytesIO()
+        pil_image.save(buffer, format="PNG")
+        img_base64 = base64.b64encode(buffer.getvalue()).decode()
 
         return jsonify({
             "image": "data:image/png;base64," + img_base64
         })
 
     except Exception as e:
-        return jsonify({"error": str(e)}), 500
+        error_text = str(e)
+        if "loading" in error_text.lower():
+            return jsonify({"error": "Model is waking up. Please wait 20 seconds and try again!"}), 503
+        return jsonify({"error": f"Hugging Face Error: {error_text}"}), 500
 
 
 # =========================================================

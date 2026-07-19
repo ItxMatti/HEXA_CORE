@@ -4,3 +4,5 @@ requests
 PyPDF2
 python-dotenv
 gunicorn
+huggingface_hub
+Pillow
